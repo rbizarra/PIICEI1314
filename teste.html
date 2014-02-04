@@ -24,57 +24,58 @@
         height: 30px;
         width: 200px;
     }
+
     .customEditingToolbar div {
         float: right;
         margin: 5px;
         width: 24px;
         height: 24px;
     }
+
     .olControlNavigationItemActive {
-        background-image:
-            url("../theme/default/img/editing_tool_bar.png");
+        background-image: url("../theme/default/img/editing_tool_bar.png");
         background-repeat: no-repeat;
         background-position: -103px -23px;
     }
+
     .olControlNavigationItemInactive {
-        background-image:
-            url("../theme/default/img/editing_tool_bar.png");
+        background-image: url("../theme/default/img/editing_tool_bar.png");
         background-repeat: no-repeat;
         background-position: -103px -0px;
     }
+
     .olControlDrawFeaturePolygonItemInactive {
-        background-image:
-            url("../theme/default/img/editing_tool_bar.png");
+        background-image: url("../theme/default/img/editing_tool_bar.png");
         background-repeat: no-repeat;
         background-position: -26px 0px;
     }
+
     .olControlDrawFeaturePolygonItemActive {
-        background-image:
-            url("../theme/default/img/editing_tool_bar.png");
+        background-image: url("../theme/default/img/editing_tool_bar.png");
         background-repeat: no-repeat;
         background-position: -26px -23px;
     }
+
     .olControlModifyFeatureItemActive {
-        background-image:
-            url(../theme/default/img/move_feature_on.png);
+        background-image: url(../theme/default/img/move_feature_on.png);
         background-repeat: no-repeat;
         background-position: 0px 1px;
     }
+
     .olControlModifyFeatureItemInactive {
-        background-image:
-            url(../theme/default/img/move_feature_off.png);
+        background-image: url(../theme/default/img/move_feature_off.png);
         background-repeat: no-repeat;
         background-position: 0px 1px;
     }
+
     .olControlDeleteFeatureItemActive {
-        background-image:
-            url(../theme/default/img/remove_point_on.png);
+        background-image: url(../theme/default/img/remove_point_on.png);
         background-repeat: no-repeat;
         background-position: 0px 1px;
     }
+
     .olControlDeleteFeatureItemInactive {
-        background-image:
-            url(../theme/default/img/remove_point_off.png);
+        background-image: url(../theme/default/img/remove_point_off.png);
         background-repeat: no-repeat;
         background-position: 0px 1px;
     }
@@ -84,16 +85,16 @@
 
     //set up the modification tools
     var DeleteFeature = OpenLayers.Class(OpenLayers.Control, {
-        initialize: function(layer, options) {
+        initialize: function (layer, options) {
             OpenLayers.Control.prototype.initialize.apply(this, [options]);
             this.layer = layer;
             this.handler = new OpenLayers.Handler.Feature(
                     this, layer, {click: this.clickFeature}
             );
         },
-        clickFeature: function(feature) {
+        clickFeature: function (feature) {
             // if feature doesn't have a fid, destroy it
-            if(feature.fid == undefined) {
+            if (feature.fid == undefined) {
                 this.layer.destroyFeatures([feature]);
             } else {
                 feature.state = OpenLayers.State.DELETE;
@@ -103,7 +104,7 @@
                 this.layer.drawFeature(feature);
             }
         },
-        setMap: function(map) {
+        setMap: function (map) {
             this.handler.setMap(map);
             OpenLayers.Control.prototype.setMap.apply(this, arguments);
         },
@@ -113,16 +114,18 @@
     function showMsg(szMessage) {
         document.getElementById("nodelist").innerHTML = szMessage;
         setTimeout(
-                "document.getElementById('nodelist').innerHTML = ''",2000);
+                "document.getElementById('nodelist').innerHTML = ''", 2000);
     }
 
-    function showSuccessMsg(){
+    function showSuccessMsg() {
         showMsg("Transaction successfully completed");
-    };
+    }
+    ;
 
-    function showFailureMsg(){
+    function showFailureMsg() {
         showMsg("An error occured while operating the transaction");
-    };
+    }
+    ;
 
 
     function init() {
@@ -139,8 +142,8 @@
 
         //Initialize the map
         //creates a new openlayers map in the <div> html element with id="map"
-        var map = new OpenLayers.Map ("map", {
-            controls:[
+        var map = new OpenLayers.Map("map", {
+            controls: [
                 //allows the user pan ability
                 new OpenLayers.Control.Navigation(),
                 //displays the pan/zoom tools
@@ -150,11 +153,11 @@
                 //displays the mouse position's coordinates in a
                 //<div> html element with id="coordinates"
                 new OpenLayers.Control.MousePosition(
-                        {div:document.getElementById("coordinates")})
+                        {div: document.getElementById("coordinates")})
             ],
             //projection: WGS84_google_mercator,
             displayProjection: WGS84
-        } );
+        });
 
         // map extent
         var mapextent =
@@ -182,13 +185,13 @@
                 version: "1.1.0",
                 // loading data through localhost url path
                 url: "http://localhost/geoserver/wfs",
-                featureNS :  "http://www.opengeospatial.net/cite",
+                featureNS: "http://www.opengeospatial.net/cite",
                 maxExtent: mapextent,
                 // layer name
                 featureType: "wfst_test",
                 // geometry column name
                 geometryName: "the_geom",
-                schema: "http://localhost/geoserver/wfs/DescribeFeatureType?version=1.1.0&typename=cite:wfst_test"
+                schema: "http://localhost:9991/geoserver/wfs/DescribeFeatureType?version=1.1.0&typename=cite:wfst_test"
             })
         });
 
@@ -222,8 +225,8 @@
 
         var save = new OpenLayers.Control.Button({
             title: "Save Changes",
-            trigger: function() {
-                if(edit.feature) {
+            trigger: function () {
+                if (edit.feature) {
                     edit.selectControl.unselectAll();
                 }
                 saveStrategy.save();
