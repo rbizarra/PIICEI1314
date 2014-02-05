@@ -10,9 +10,10 @@
     <title>OpenLayers Vector Behavior Example</title>
     <link rel="stylesheet" href="http://openlayers.org/dev/theme/default/style.css" type="text/css">
     <link rel="stylesheet" href="http://openlayers.org/dev/examples/style.css" type="text/css">
+    <script src="http://openlayers.org/api/OpenLayers.js"></script>
     <script src="http://maps.google.com/maps/api/js?v=3.2&sensor=false"></script>
     <script src="http://www.openstreetmap.org/openlayers/OpenStreetMap.js"></script>
-    <script src="http://openlayers.org/api/OpenLayers.js"></script>
+
 
     <script type="text/javascript">
 
@@ -48,10 +49,11 @@
 
             // map extent -> initial coordinates
             var mapextent =
-                //new OpenLayers.Bounds(-123.17341, 49.24343, -123.06183, 49.29899).transform(WGS84, WGS84_google_mercator);
-                //new OpenLayers.Bounds(-74.14023, 40.62600, -73.79759, 40.88503).transform(WGS84, WGS84_google_mercator); //NY
+//                new OpenLayers.Bounds(-123.17341, 49.24343, -123.06183, 49.29899).transform(WGS84, WGS84_google_mercator);
+//                new OpenLayers.Bounds(-74.14023, 40.62600, -73.79759, 40.88503).transform(WGS84, WGS84_google_mercator); //NY
                 new OpenLayers.Bounds(143.62000, -43.91327, 149.11316, -39.82493).transform(WGS84, WGS84_google_mercator); //Tasmania
-                //new OpenLayers.Bounds(-9.27273, 38.5882, -9.10141, 38.72121).transform(WGS84, WGS84_google_mercator); //margem sul
+//                new OpenLayers.Bounds(-144.75793, -9.37040, -57.04309, 61.39281).transform(WGS84, WGS84_google_mercator); //USA
+//                new OpenLayers.Bounds(-9.27273, 38.5882, -9.10141, 38.72121).transform(WGS84, WGS84_google_mercator); //margem sul
 
             //base layers -> the different options of visualization
             var openstreetmap = new OpenLayers.Layer.OSM();
@@ -126,9 +128,6 @@
 //            );
 
 
-
-
-
             //***********************TASMANIA*****************************
             //WMS funciona mesmo com 2 layers, falta WFS
 
@@ -146,30 +145,81 @@
 //            map.addLayer(wms1);
 //            map.addLayer(wms2);
 
-
-            var wfs_layer = new OpenLayers.Layer.Vector("WFS Tasmania", {
-                strategies: [new OpenLayers.Strategy.Fixed()],
-                protocol: new OpenLayers.Protocol.WFS({
-                    version: "1.1.0",
-                    url: "http://localhost:9991/geoserver/wfs",
-                    featurePrefix: "topp",
-                    featureType: "tasmania_water_bodies",
-                    featureNS: " http://www.openplans.org/topp",
-                    geometryName: "the_geom",
-                    srsName: "EPSG:4326"
+//            http://localhost:9991/geoserver/topp/ows?service=WFS&version=1.0.0&
+//              request=GetFeature&typeName=topp:tasmania_cities&maxFeatures=50
+            var wfs_options = {
+                url: 'http://localhost:9991/geoserver/topp/ows?',
+                params: {
+                    service: "wfs",
+                    version: "1.0.0",
+                    request: "GetFeature",
+                    typeName: "topp:tasmania_roads",
+                    maxFeatures: 50
+                },
+                format: new OpenLayers.Format.GML({
+                    featureNS: "http://www.openplans.org/topp"
+                    //geometryName: "the_geom"
                 })
-                //renderers : renderer
+            }
+
+            var wfs_layer = new OpenLayers.Layer.Vector('WFS', {
+                strategies: [new OpenLayers.Strategy.Fixed()],
+                visibility: true,
+                protocol: new OpenLayers.Protocol.HTTP(wfs_options)
             });
 
 
 
+//            var wfs_layer = new OpenLayers.Layer.Vector("WFS Tasmania", {
+//                strategies: [new OpenLayers.Strategy.Fixed()],
+//                protocol: new OpenLayers.Protocol.WFS({
+//                    version: "1.1.0",
+//                    url: "http://localhost:9991/geoserver/wfs",
+//                    featurePrefix: "topp",
+//                    featureType: "tasmania_roads",
+//                    featureNS: "http://www.openplans.org/topp",
+//                    geometryName: "the_geom",
+//                    srsName: "EPSG:4326",
+//                    visibility: true
+//                    //strict: true
+//                    //schema: "http://localhost:9991/geoserver/wfs?service=wfs&version=1.1.0&request=GetFeature&typeNames=topp:tasmania_roads"
+//                    //schema: "http://localhost:9991/geoserver/wfs/DescribeFeatureType?version=1.1.0&typename=topp:tasmania_roads"
+//                })
+//                //renderers : renderer
+//            });
 
+
+            //***********************UNITED STATES*****************************
+            //WMS funciona, falta WFS
+
+//            var wms = new OpenLayers.Layer.WMS('USA States',
+//                    'http://localhost:9991/geoserver/topp/wms',
+//                    {'layers': 'topp:states',
+//                        isBaseLayer: false, 'transparent': true} //This part was required!
+//            );
+
+//            var wfs_layer = new OpenLayers.Layer.Vector("USA States", {
+//                strategies: [new OpenLayers.Strategy.Fixed()],
+//                protocol: new OpenLayers.Protocol.WFS({
+//                    version: "1.1.0",
+//                    url: "http://localhost:9991/geoserver/wfs",
+//                    featurePrefix: "topp",
+//                    featureType: "states",
+//                    featureNS: "http://www.openplans.org/topp",
+//                    geometryName: "the_geom",
+//                    srsName: "EPSG:4326"
+//                    //schema: "http://localhost:9991/geoserver/wfs?service=wfs&version=1.1.0&request=GetFeature&typeNames=topp:tasmania_roads"
+//                })
+//                //renderers : renderer
+//            });
 
 
             map.addLayers([openstreetmap, google_maps, google_satellite, wfs_layer]);
 //            map.addLayers([openstreetmap, google_maps, google_satellite, wms1, wms2]);
+//            map.addLayers([openstreetmap, google_maps, google_satellite, wms]);
             map.zoomToExtent(mapextent);
-        };
+        }
+        ;
 
     </script>
 
