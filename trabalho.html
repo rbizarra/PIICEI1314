@@ -1,16 +1,17 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title></title>
+    <title>Geoserver Layers using OpenLayers</title>
     <!--<link rel="stylesheet" title="alternative" type="text/css" href="homepage_theme_2.css"/>
     <link rel="shortcut icon" href="../resources/favicon.png">
     <script type="text/javascript" src="OpenLayers.js"></script>-->
 
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>OpenLayers Vector Behavior Example</title>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+    <meta content="utf-8" http-equiv="encoding">
     <link rel="stylesheet" href="http://openlayers.org/dev/theme/default/style.css" type="text/css">
     <link rel="stylesheet" href="http://openlayers.org/dev/examples/style.css" type="text/css">
-    <script src="http://openlayers.org/api/OpenLayers.js"></script>
+    <!--<script src="http://openlayers.org/dev/OpenLayers.js"></script>-->
+    <script src="OpenLayers/OpenLayers.js"></script>
     <script src="http://maps.google.com/maps/api/js?v=3.2&sensor=false"></script>
     <script src="http://www.openstreetmap.org/openlayers/OpenStreetMap.js"></script>
 
@@ -147,20 +148,29 @@
 
 //            http://localhost:9991/geoserver/topp/ows?service=WFS&version=1.0.0&
 //              request=GetFeature&typeName=topp:tasmania_cities&maxFeatures=50
+
+
+//            var renderer = OpenLayers.Util.getParameters(window.location.href).renderer;
+//            renderer = (renderer) ? [renderer] : OpenLayers.Layer.Vector.prototype.renderers;
+//            var original = "topp:tasmania_roads";
+//            var link = decodeURI(original);
+
             var wfs_options = {
-                url: 'http://localhost:9991/geoserver/topp/ows?',
+                url: "http://localhost:9991/geoserver/topp/ows",
                 params: {
-                    service: "wfs",
+                    service: "WFS",
                     version: "1.0.0",
                     request: "GetFeature",
-                    typeName: "topp:tasmania_roads",
-                    maxFeatures: 50
+                    typeName: "topp:tasmania_roads"
                 },
                 format: new OpenLayers.Format.GML({
-                    featureNS: "http://www.openplans.org/topp"
-                    //geometryName: "the_geom"
+                    featureNS: "http://www.openplans.org/topp",
+                    geometryName: "the_geom",
+                    isBaseLayer: false,
+                    transparent: true,
+                    srsName: "EPSG:4326"
                 })
-            }
+            };
 
             var wfs_layer = new OpenLayers.Layer.Vector('WFS', {
                 strategies: [new OpenLayers.Strategy.Fixed()],
@@ -218,8 +228,7 @@
 //            map.addLayers([openstreetmap, google_maps, google_satellite, wms1, wms2]);
 //            map.addLayers([openstreetmap, google_maps, google_satellite, wms]);
             map.zoomToExtent(mapextent);
-        }
-        ;
+        };
 
     </script>
 
