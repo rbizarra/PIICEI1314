@@ -3,24 +3,18 @@
 <head>
     <title>Geoserver Layers using OpenLayers</title>
     <!--<link rel="stylesheet" title="alternative" type="text/css" href="homepage_theme_2.css"/>
-    <link rel="shortcut icon" href="../resources/favicon.png">
-    <script type="text/javascript" src="OpenLayers.js"></script>-->
+    <link rel="shortcut icon" href="../resources/favicon.png">-->
 
     <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
     <meta content="utf-8" http-equiv="encoding">
     <link rel="stylesheet" href="http://openlayers.org/dev/theme/default/style.css" type="text/css">
     <link rel="stylesheet" href="http://openlayers.org/dev/examples/style.css" type="text/css">
-    <!--<script src="http://openlayers.org/dev/OpenLayers.js"></script>-->
     <script src="OpenLayers/OpenLayers.js"></script>
     <script src="http://maps.google.com/maps/api/js?v=3.2&sensor=false"></script>
     <script src="http://www.openstreetmap.org/openlayers/OpenStreetMap.js"></script>
 
-
     <script type="text/javascript">
-
         function init() {
-
-            //OpenLayers.ProxyHost = "proxy.cgi?url=";
 
             // World Geodetic System 1984 projection
             var WGS84 = new OpenLayers.Projection("EPSG:4326");
@@ -42,8 +36,13 @@
                     new OpenLayers.Control.MousePosition(
                             {div: document.getElementById("coordinates")})
                 ],
+
+                //TODO: VERIFICAR ESTE BUG
+                //PARA WMS: DESCOMENTAR A LINHA "PROJECTION"
+                //PARA WFS: COMENTAR A LINHA "PROJECTION"
+
                 // WGS84 Google Mercator projection
-                projection: WGS84_google_mercator,
+                //projection: WGS84_google_mercator,
                 // World Geodetic System 1984 projection
                 displayProjection: WGS84
             });
@@ -75,39 +74,7 @@
             var aliasproj = new OpenLayers.Projection("EPSG:3857");
             openstreetmap.projection = google_maps.projection = google_satellite.projection = aliasproj;
 
-            //wfs-t editable overlay
-//            var wfs_layer = new OpenLayers.Layer.Vector("WFS Layer", {
-//                //projection: new OpenLayers.Projection("EPSG:26910"),
-//                protocol: new OpenLayers.Protocol.WFS({
-//                    version: "1.1.0",
-//                    // loading data through localhost url path
-//                    url: "http://localhost:9991/geoserver/wfs",
-//                    //featureNS: "http://www.opengeospatial.net/cite",
-//                    maxExtent: mapextent,
-//                    // layer name
-//                    featureType: "tiger_roads",
-//                    // geometry column name
-//                    geometryName: "the_geom",
-//                    schema: "http://localhost:9991/geoserver/wfs/DescribeFeatureType?version=1.1.0&typename=cite:tiger_roads"
-//                })
-//            });
-
-
-//            var wfs_layer = new OpenLayers.Layer.Vector("Fields_WFS", {
-//                strategies : [new OpenLayers.Strategy.Fixed()],
-//                protocol : new OpenLayers.Protocol.WFS({
-//                    version : "1.1.0",
-//                    url : "http://localhost:9991/geoserver/wfs",
-//                    featurePrefix : "myc_roads",
-//                    featureType : "nyc_roads"
-//                    //featureNS : "<namespace>",
-//                    //geometryName : "GEOM", type "Geometry"
-//                    //srsName : "EPSG:27700"
-//                })
-//                //renderers : renderer
-//            });
-
-//            var wfs_layer = new OpenLayers.Layer.Vector("Fields_WFS", {
+//            var wfs_layer = new OpenLayers.Layer.Vector("New York Roads", {
 //                strategies: [new OpenLayers.Strategy.Fixed()],
 //                protocol: new OpenLayers.Protocol.WFS({
 //                    version: "1.1.0",
@@ -122,7 +89,7 @@
 //            });
 
             //display layer using WMS
-//            var wms = new OpenLayers.Layer.WMS('New York Stuff',
+//            var wms = new OpenLayers.Layer.WMS('New York Roads',
 //                    'http://localhost:9991/geoserver/nyc_roads/wms',
 //                    {'layers': 'nyc_roads:nyc_roads',
 //                        isBaseLayer: false, 'transparent': true} //This part was required!
@@ -130,7 +97,8 @@
 
 
             //***********************TASMANIA*****************************
-            //WMS funciona mesmo com 2 layers, falta WFS
+            //WMS funciona, WFS também
+            //Caso queira mostrar WMS, alterar definições na inicialização do MAPA!!
 
 //            var wms1 = new OpenLayers.Layer.WMS('Tasmania - Water',
 //                    'http://localhost:9991/geoserver/topp/wms',
@@ -143,64 +111,53 @@
 //                    {'layers': 'topp:tasmania_roads',
 //                        isBaseLayer: false, 'transparent': true} //This part was required!
 //            );
-//            map.addLayer(wms1);
-//            map.addLayer(wms2);
-
-//            http://localhost:9991/geoserver/topp/ows?service=WFS&version=1.0.0&
-//              request=GetFeature&typeName=topp:tasmania_cities&maxFeatures=50
-
 
 //            var renderer = OpenLayers.Util.getParameters(window.location.href).renderer;
 //            renderer = (renderer) ? [renderer] : OpenLayers.Layer.Vector.prototype.renderers;
-//            var original = "topp:tasmania_roads";
-//            var link = decodeURI(original);
 
-            var wfs_options = {
-                url: "http://localhost:9991/geoserver/topp/ows",
-                params: {
-                    service: "WFS",
-                    version: "1.0.0",
-                    request: "GetFeature",
-                    typeName: "topp:tasmania_roads"
-                },
-                format: new OpenLayers.Format.GML({
-                    featureNS: "http://www.openplans.org/topp",
-                    geometryName: "the_geom",
-                    isBaseLayer: false,
-                    transparent: true,
-                    srsName: "EPSG:4326"
-                })
-            };
+            //Obter a layer usando um pedido GET - não usar, pois não permite guardar alteraçoes
+//            var wfs_options = {
+//                url: "http://localhost:9991/geoserver/topp/ows",
+//                params: {
+//                    service: "WFS",
+//                    version: "1.0.0",
+//                    request: "GetFeature",
+//                    typeName: "topp:tasmania_roads"
+//                },
+//                format: new OpenLayers.Format.GML({
+//                    featureNS: "http://www.openplans.org/topp",
+//                    geometryName: "the_geom",
+//                    isBaseLayer: false,
+//                    transparent: true,
+//                    srsName: "EPSG:4326"
+//                })
+//            };
+//
+//            var wfs_layer = new OpenLayers.Layer.Vector('WFS', {
+//                strategies: [new OpenLayers.Strategy.Fixed()],
+//                visibility: true,
+//                protocol: new OpenLayers.Protocol.HTTP(wfs_options)
+//            });
 
-            var wfs_layer = new OpenLayers.Layer.Vector('WFS', {
-                strategies: [new OpenLayers.Strategy.Fixed()],
-                visibility: true,
-                protocol: new OpenLayers.Protocol.HTTP(wfs_options)
-            });
-
-
-
-//            var wfs_layer = new OpenLayers.Layer.Vector("WFS Tasmania", {
+            //Obter layer usando um pedido POST
+//            var wfs_layer = new OpenLayers.Layer.Vector("WFS Tasmania Water", {
 //                strategies: [new OpenLayers.Strategy.Fixed()],
 //                protocol: new OpenLayers.Protocol.WFS({
 //                    version: "1.1.0",
 //                    url: "http://localhost:9991/geoserver/wfs",
 //                    featurePrefix: "topp",
-//                    featureType: "tasmania_roads",
+//                    featureType: "tasmania_water_bodies",
 //                    featureNS: "http://www.openplans.org/topp",
 //                    geometryName: "the_geom",
 //                    srsName: "EPSG:4326",
 //                    visibility: true
-//                    //strict: true
-//                    //schema: "http://localhost:9991/geoserver/wfs?service=wfs&version=1.1.0&request=GetFeature&typeNames=topp:tasmania_roads"
-//                    //schema: "http://localhost:9991/geoserver/wfs/DescribeFeatureType?version=1.1.0&typename=topp:tasmania_roads"
 //                })
 //                //renderers : renderer
 //            });
+//            wfs_layer.setMap(map);
 
 
             //***********************UNITED STATES*****************************
-            //WMS funciona, falta WFS
 
 //            var wms = new OpenLayers.Layer.WMS('USA States',
 //                    'http://localhost:9991/geoserver/topp/wms',
@@ -208,24 +165,26 @@
 //                        isBaseLayer: false, 'transparent': true} //This part was required!
 //            );
 
-//            var wfs_layer = new OpenLayers.Layer.Vector("USA States", {
-//                strategies: [new OpenLayers.Strategy.Fixed()],
-//                protocol: new OpenLayers.Protocol.WFS({
-//                    version: "1.1.0",
-//                    url: "http://localhost:9991/geoserver/wfs",
-//                    featurePrefix: "topp",
-//                    featureType: "states",
-//                    featureNS: "http://www.openplans.org/topp",
-//                    geometryName: "the_geom",
-//                    srsName: "EPSG:4326"
-//                    //schema: "http://localhost:9991/geoserver/wfs?service=wfs&version=1.1.0&request=GetFeature&typeNames=topp:tasmania_roads"
-//                })
-//                //renderers : renderer
-//            });
+            var wfs_layer = new OpenLayers.Layer.Vector("USA States", {
+                strategies: [new OpenLayers.Strategy.Fixed()],
+                protocol: new OpenLayers.Protocol.WFS({
+                    version: "1.1.0",
+                    url: "http://localhost:9991/geoserver/wfs",
+                    featurePrefix: "topp",
+                    featureType: "states",
+                    featureNS: "http://www.openplans.org/topp",
+                    geometryName: "the_geom",
+                    srsName: "EPSG:4326"
+                })
+                //renderers : renderer
+            });
+            wfs_layer.setMap(map);
 
+            wms1.setMap(map);
+            wms2.setMap(map);
 
-            map.addLayers([openstreetmap, google_maps, google_satellite, wfs_layer]);
-//            map.addLayers([openstreetmap, google_maps, google_satellite, wms1, wms2]);
+//            map.addLayers([openstreetmap, google_maps, google_satellite, wfs_layer]);
+            map.addLayers([openstreetmap, google_maps, google_satellite, wfs_layer, wms1, wms2]);
 //            map.addLayers([openstreetmap, google_maps, google_satellite, wms]);
             map.zoomToExtent(mapextent);
         };
