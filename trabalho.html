@@ -48,6 +48,16 @@
         background-repeat: no-repeat;
     }
 
+    .olControlModifyFeatureItemActive {
+        background-image: url(OpenLayers/theme/default/img/move_feature_on.png);
+        background-repeat: no-repeat;
+    }
+
+    .olControlModifyFeatureItemInactive {
+        background-image: url(OpenLayers/theme/default/img/move_feature_off.png);
+        background-repeat: no-repeat;
+    }
+
     .olControlDeleteFeatureItemActive {
         background-image: url(OpenLayers/theme/default/img/remove_point_on.png);
         background-repeat: no-repeat;
@@ -199,32 +209,40 @@ function init() {
 
     var drawPoly = new OpenLayers.Control.DrawFeature(
             wfs_layer, OpenLayers.Handler.Polygon,
-            {
-                title: "Draw Polygon",
-                displayClass: "olControlDrawFeaturePolygon",
-                multi: true
-            }
+        {
+            title: "Draw Polygon",
+            displayClass: "olControlDrawFeaturePolygon",
+            multi: true
+        }
     );
 
     var drawPoint = new OpenLayers.Control.DrawFeature(
             wfs_layer, OpenLayers.Handler.Point,
-            {
-                title: "Draw Point",
-                displayClass: "olControlDrawFeaturePoint"
-            }
+        {
+            title: "Draw Point",
+            displayClass: "olControlDrawFeaturePoint"
+        }
     );
+
+    var edit = new OpenLayers.Control.ModifyFeature(wfs_layer, {
+        title: "Edit Feature",
+        displayClass: "olControlModifyFeature"
+    });
 
     var del = new DeleteFeature(wfs_layer, {title: "Delete Feature"});
 
     var save = new OpenLayers.Control.Button({
         title: "Save Changes",
         trigger: function () {
+            if (edit.feature) {
+                edit.unselectFeature();
+            }
             saveStrategy.save();
         },
         displayClass: "olControlSaveFeatures"
     });
 
-    panel.addControls([save, del, drawPoint, drawPoly]);
+    panel.addControls([save, del, edit, drawPoint, drawPoly]);
     map.addControl(panel);
     map.zoomToExtent(mapextent, true);
 
