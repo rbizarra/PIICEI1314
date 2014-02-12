@@ -2,3 +2,6 @@
 teste.xml
 *.xml
 OpenLayers/*
+wfs_transaction.js
+wfs_protocol.html
+wfs_getFeature.html

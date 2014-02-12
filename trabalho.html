@@ -38,6 +38,16 @@
         background-repeat: no-repeat;
     }
 
+    .olControlDrawFeaturePointItemInactive {
+        background-image: url("OpenLayers/theme/default/img/add_point_off.png");
+        background-repeat: no-repeat;
+    }
+
+    .olControlDrawFeaturePointItemActive {
+        background-image: url("OpenLayers/theme/default/img/add_point_on.png");
+        background-repeat: no-repeat;
+    }
+
     .olControlDeleteFeatureItemActive {
         background-image: url(OpenLayers/theme/default/img/remove_point_on.png);
         background-repeat: no-repeat;
@@ -196,6 +206,14 @@ function init() {
             }
     );
 
+    var drawPoint = new OpenLayers.Control.DrawFeature(
+            wfs_layer, OpenLayers.Handler.Point,
+            {
+                title: "Draw Point",
+                displayClass: "olControlDrawFeaturePoint"
+            }
+    );
+
     var del = new DeleteFeature(wfs_layer, {title: "Delete Feature"});
 
     var save = new OpenLayers.Control.Button({
@@ -206,7 +224,7 @@ function init() {
         displayClass: "olControlSaveFeatures"
     });
 
-    panel.addControls([save, del, drawPoly]);
+    panel.addControls([save, del, drawPoint, drawPoly]);
     map.addControl(panel);
     map.zoomToExtent(mapextent, true);
 
