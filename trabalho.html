@@ -7,9 +7,9 @@
 
 <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
 <meta content="utf-8" http-equiv="encoding">
-<link rel="stylesheet" href="http://openlayers.org/dev/theme/default/style.css" type="text/css">
+<!--<link rel="stylesheet" href="http://openlayers.org/dev/theme/default/style.css" type="text/css">
 <link rel="stylesheet" href="http://openlayers.org/dev/examples/style.css" type="text/css">
-<link type="text/css" href="OpenLayers/theme/default/style.css" rel="stylesheet">
+<link type="text/css" href="OpenLayers/theme/default/style.css" rel="stylesheet">-->
 <script src="OpenLayers/OpenLayers.js"></script>
 <script src="http://maps.google.com/maps/api/js?v=3.2&sensor=false"></script>
 <script src="http://www.openstreetmap.org/openlayers/OpenStreetMap.js"></script>
@@ -78,6 +78,36 @@
         background-repeat: no-repeat;
     }
 
+    body {
+        font-family: Verdana;
+        font-size: 12px;
+    }
+
+    h2 {
+        color: rgb(0, 58, 107);
+        border-bottom: 1px solid black;
+        font-size: 150%;
+    }
+
+    #map {
+        width: 600px;
+        height: 500px;
+    }
+
+    #info {
+        position: absolute;
+        top: 50px;
+        left: 650px;
+    }
+
+    #info > p {
+        display: inline-block;
+    }
+
+    #coordinates {
+        display: inline-block;
+    }
+
 </style>
 
 <script type="text/javascript">
@@ -132,12 +162,6 @@ function init() {
                     {div: document.getElementById("coordinates")})
         ],
 
-        //TODO: VERIFICAR ESTE BUG
-        //PARA WMS: DESCOMENTAR A LINHA "PROJECTION"
-        //PARA WFS: COMENTAR A LINHA "PROJECTION"
-
-        // WGS84 Google Mercator projection
-        //projection: WGS84_google_mercator,
         // World Geodetic System 1984 projection
         displayProjection: WGS84
     });
@@ -170,15 +194,6 @@ function init() {
     var aliasproj = new OpenLayers.Projection("EPSG:3857");
     openstreetmap.projection = google_maps.projection = google_satellite.projection = aliasproj;
 
-
-    //***********************UNITED STATES*****************************
-
-//            var wms = new OpenLayers.Layer.WMS('USA States',
-//                    'http://localhost:9991/geoserver/topp/wms',
-//                    {'layers': 'topp:states',
-//                        isBaseLayer: false, 'transparent': true} //This part was required!
-//            );
-
     var saveStrategy = new OpenLayers.Strategy.Save();
 
     var wfs_layer = new OpenLayers.Layer.Vector("USA States", {
@@ -192,10 +207,9 @@ function init() {
             geometryName: "the_geom",
             srsName: "EPSG:4326"
         })
-        //renderers : renderer
     });
-    wfs_layer.setMap(map);
 
+    wfs_layer.setMap(map);
     map.addLayers([openstreetmap, google_maps, google_satellite, wfs_layer]);
 
 
@@ -209,19 +223,19 @@ function init() {
 
     var drawPoly = new OpenLayers.Control.DrawFeature(
             wfs_layer, OpenLayers.Handler.Polygon,
-        {
-            title: "Draw Polygon",
-            displayClass: "olControlDrawFeaturePolygon",
-            multi: true
-        }
+            {
+                title: "Draw Polygon",
+                displayClass: "olControlDrawFeaturePolygon",
+                multi: true
+            }
     );
 
     var drawPoint = new OpenLayers.Control.DrawFeature(
             wfs_layer, OpenLayers.Handler.Point,
-        {
-            title: "Draw Point",
-            displayClass: "olControlDrawFeaturePoint"
-        }
+            {
+                title: "Draw Point",
+                displayClass: "olControlDrawFeaturePoint"
+            }
     );
 
     var edit = new OpenLayers.Control.ModifyFeature(wfs_layer, {
@@ -248,6 +262,15 @@ function init() {
 
 
     //*****************************TESTES********************************************
+
+
+    //***********************UNITED STATES*****************************
+
+//            var wms = new OpenLayers.Layer.WMS('USA States',
+//                    'http://localhost:9991/geoserver/topp/wms',
+//                    {'layers': 'topp:states',
+//                        isBaseLayer: false, 'transparent': true} //This part was required!
+//            );
 
     //            var wfs_layer = new OpenLayers.Layer.Vector("New York Roads", {
 //                strategies: [new OpenLayers.Strategy.Fixed()],
@@ -345,8 +368,19 @@ function init() {
 
 </head>
 <body onload="init()">
-<div id="map" style="width:500px; height:500px;"></div>
-<div id="coordinates"></div>
-<div id="nodelist"></div>
+<h2>Manipulação interactiva de layers usando como repositório o Geoserver</h2>
+
+<div id="main">
+    <div id="map"></div>
+    <div id="info">
+        <p><b>Coordenadas do rato:</b></p>
+
+        <div id="coordinates"></div>
+    </div>
+
+</div>
+
+
+<!--<div id="nodelist"></div>-->
 </body>
 </html>
