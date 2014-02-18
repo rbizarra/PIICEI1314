@@ -139,6 +139,8 @@ var DeleteFeature = OpenLayers.Class(OpenLayers.Control, {
     CLASS_NAME: "OpenLayers.Control.DeleteFeature"
 });
 
+var selectedFeature, featureInfoControl, map;
+
 function init() {
 
     // World Geodetic System 1984 projection
@@ -148,7 +150,7 @@ function init() {
 
     //Initialize the map
     //creates a new openlayers map in the <div> html element with id="map"
-    var map = new OpenLayers.Map("map", {
+    map = new OpenLayers.Map("map", {
         controls: [
             //allows the user pan ability
             new OpenLayers.Control.Navigation(),
@@ -209,6 +211,17 @@ function init() {
         })
     });
 
+    featureInfoControl = { selection: new OpenLayers.Control.SelectFeature(wfs_layer,
+            {onSelect: onFeatureSelect, onUnselect: onFeatureUnselect})
+    };
+
+    for (var i in featureInfoControl) {
+//        featureInfoControl[i].events.register("getfeatureinfo", this, showInfo);
+        map.addControl(featureInfoControl[i]);
+    }
+    featureInfoControl.selection.activate();
+
+
     wfs_layer.setMap(map);
     map.addLayers([openstreetmap, google_maps, google_satellite, wfs_layer]);
 
@@ -259,7 +272,32 @@ function init() {
     panel.addControls([save, del, edit, drawPoint, drawPoly]);
     map.addControl(panel);
     map.zoomToExtent(mapextent, true);
+};
 
+function onPopupClose(evt) {
+    featureInfoControl.unselect(selectedFeature);
+}
+
+function onFeatureSelect(feature) {
+    selectedFeature = feature;
+    popup = new OpenLayers.Popup("popup01",
+            feature.geometry.getBounds().getCenterLonLat(),
+            new OpenLayers.Size(200,200),
+            "<div style='font-size:.8em'>Feature: " + feature.id,
+            false, onPopupClose);
+    feature.popup = popup;
+    map.addPopup(popup);
+}
+
+function onFeatureUnselect(feature) {
+    map.removePopup(feature.popup);
+    feature.popup.destroy();
+    feature.popup = null;
+}
+
+function showInfo(evt) {
+    document.getElementById('layer_info').innerHTML = evt.text;
+}
 
     //*****************************TESTES********************************************
 
@@ -361,8 +399,7 @@ function init() {
 //    map.addLayers([openstreetmap, google_maps, google_satellite, wms]);
 //    map.zoomToExtent(mapextent);
 
-}
-;
+
 
 </script>
 
@@ -374,8 +411,8 @@ function init() {
     <div id="map"></div>
     <div id="info">
         <p><b>Coordenadas do rato:</b></p>
-
         <div id="coordinates"></div>
+        <div id="layer_info"></div>
     </div>
 
 </div>
