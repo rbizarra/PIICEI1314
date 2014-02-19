@@ -84,32 +84,48 @@
         font-size: 12px;
     }
 
-    h2 {
+    h2, h3 {
         color: rgb(0, 58, 107);
         border-bottom: 1px solid black;
+    }
+
+    h2 {
         font-size: 150%;
+    }
+
+    h3 {
+        font-size: 125%;
+        margin-top: 5px;
+        margin-bottom: 5px;
+    }
+
+    #layer_info_left > p,
+    #layer_info_right > p {
+        margin-top: 7px;
+        margin-bottom: 7px;
     }
 
     #map {
         width: 600px;
-        height: 500px;
+        height: 450px;
+    }
+
+    #layer_chooser {
+        margin-top: 10px;
+        width: 600px;
     }
 
     #info {
         position: absolute;
         top: 50px;
-        left: 650px;
-        width: 600px;
-    }
-
-    #info > p, #coordinates,
-    #layer_info_left, #layer_info_right {
-        display: inline-block;
+        left: 625px;
+        width: 655px;
     }
 
     #layer_info_left, #layer_info_right {
         width: 48%;
         vertical-align: top;
+        display: inline-block;
     }
 
 </style>
@@ -240,6 +256,12 @@ function init() {
                 }
                 size++;
             }
+        },
+        featureunselected: function (event) {
+            $('#layer_info_left').empty();
+            $('#layer_info_right').empty();
+
+            $('#layer_info_left').append("<p>" + "Nenhuma layer seleccionada. Carregue numa para mostrar informação" + "</p>");
         }
     });
 
@@ -403,15 +425,17 @@ function init() {
 <div id="main">
     <div id="map"></div>
     <div id="info">
-        <p><b>Coordenadas do rato:</b></p>
+        <h3>Coordenadas do rato:</h3>
         <div id="coordinates"></div><br>
-        <p><b>Informação da layer</b></p>
+        <h3>Informação da layer</h3>
         <div id="layer_info">
-            <div id="layer_info_left">shit</div>
-            <div id="layer_info_right">shit</div>
+            <div id="layer_info_left">Nenhuma layer seleccionada. Carregue numa para mostrar informação</div>
+            <div id="layer_info_right"></div>
         </div>
     </div>
-
+    <div id="layer_chooser">
+        <h3>Escolher layer</h3>
+    </div>
 </div>
 
 
