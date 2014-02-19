@@ -5,3 +5,4 @@ OpenLayers/*
 wfs_transaction.js
 wfs_protocol.html
 wfs_getFeature.html
+jquery-1.10.2.min.js
