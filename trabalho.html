@@ -2,15 +2,11 @@
 <html>
 <head>
 <title>Geoserver Layers using OpenLayers</title>
-<!--<link rel="stylesheet" title="alternative" type="text/css" href="homepage_theme_2.css"/>
-<link rel="shortcut icon" href="../resources/favicon.png">-->
 
 <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
 <meta content="utf-8" http-equiv="encoding">
-<!--<link rel="stylesheet" href="http://openlayers.org/dev/theme/default/style.css" type="text/css">
-<link rel="stylesheet" href="http://openlayers.org/dev/examples/style.css" type="text/css">
-<link type="text/css" href="OpenLayers/theme/default/style.css" rel="stylesheet">-->
-<script src="OpenLayers/OpenLayers.js"></script>
+<!--<script src="OpenLayers/OpenLayers.js"></script>-->
+<script src="http://www.openlayers.org/dev/OpenLayers.js"></script>
 <script src="jquery-1.10.2.min.js"></script>
 <script src="http://maps.google.com/maps/api/js?v=3.2&sensor=false"></script>
 <script src="http://www.openstreetmap.org/openlayers/OpenStreetMap.js"></script>
@@ -100,19 +96,15 @@
     }
 
     #layer_info_left > p,
-    #layer_info_right > p {
-        margin-top: 7px;
-        margin-bottom: 7px;
+    #layer_info_right > p,
+    #layer_info_center > p {
+        margin-top: 8px;
+        margin-bottom: 8px;
     }
 
     #map {
         width: 600px;
-        height: 450px;
-    }
-
-    #layer_chooser {
-        margin-top: 10px;
-        width: 600px;
+        height: 560px;
     }
 
     #info {
@@ -122,10 +114,48 @@
         width: 655px;
     }
 
-    #layer_info_left, #layer_info_right {
-        width: 48%;
+    #layer_chooser_left, #layer_chooser_right {
+        width: 49%;
         vertical-align: top;
         display: inline-block;
+    }
+
+    #layer_info_left, #layer_info_right,
+    #layer_info_center {
+        width: 32%;
+        vertical-align: top;
+        display: inline-block;
+        text-align: center;
+    }
+
+    #layer_info_right,
+    #layer_info_center {
+        margin-left: 9px;
+    }
+
+    .input-text {
+        margin-bottom: 6px;
+        border-radius: 2px;
+        width: 75%;
+    }
+
+    #send-request {
+        margin-bottom: 15px;
+    }
+
+    #map-content > p {
+        font-size: 90%;
+    }
+
+    .edit_layer_info {
+        text-align: center;
+        display: block;
+        width: 98%;
+        margin-bottom: 5px;
+    }
+
+    .edit_layer_info_textbox {
+
     }
 
 </style>
@@ -159,7 +189,18 @@ var DeleteFeature = OpenLayers.Class(OpenLayers.Control, {
     CLASS_NAME: "OpenLayers.Control.DeleteFeature"
 });
 
-var selectedFeature, selectControl, map;
+function clearProperties() {
+    $('#layer_info > p').empty();
+    $('#layer_info_left').empty();
+    $('#layer_info_center').empty();
+    $('#layer_info_right').empty();
+}
+
+var selectedFeature, selectControl, map, wfs_layer, saveStrategy, select;
+var save, del, edit, drawPoint, drawPoly, panel;
+var featureProps;
+var counter = 0;
+var countAux = 0;
 
 function init() {
 
@@ -168,27 +209,17 @@ function init() {
     // WGS84 Google Mercator projection
     var WGS84_google_mercator = new OpenLayers.Projection("EPSG:900913");
 
-    //Initialize the map
-    //creates a new openlayers map in the <div> html element with id="map"
     map = new OpenLayers.Map("map", {
         controls: [
-            //allows the user pan ability
             new OpenLayers.Control.Navigation(),
-            //displays the pan/zoom tools
             new OpenLayers.Control.PanZoom(),
-            //displays a layer switcher
             new OpenLayers.Control.LayerSwitcher(),
-            //displays the mouse position's coordinates in a
-            //<div> html element with id="coordinates"
             new OpenLayers.Control.MousePosition(
                     {div: document.getElementById("coordinates")})
         ],
-
-        // World Geodetic System 1984 projection
         displayProjection: WGS84
     });
 
-    // map extent -> initial coordinates
     var mapextent =
             new OpenLayers.Bounds(-110.51794, 17.63206, -79.58044, 52.42157).transform(WGS84, WGS84_google_mercator); //USA all
 //                new OpenLayers.Bounds(-123.17341, 49.24343, -123.06183, 49.29899).transform(WGS84, WGS84_google_mercator);
@@ -197,7 +228,6 @@ function init() {
 //                new OpenLayers.Bounds(-144.75793, -9.37040, -57.04309, 61.39281).transform(WGS84, WGS84_google_mercator); //USA
 //                new OpenLayers.Bounds(-9.27273, 38.5882, -9.10141, 38.72121).transform(WGS84, WGS84_google_mercator); //margem sul
 
-    //base layers -> the different options of visualization
     var openstreetmap = new OpenLayers.Layer.OSM();
 
     var google_maps = new OpenLayers.Layer.Google(
@@ -216,64 +246,53 @@ function init() {
     var aliasproj = new OpenLayers.Projection("EPSG:3857");
     openstreetmap.projection = google_maps.projection = google_satellite.projection = aliasproj;
 
-    var saveStrategy = new OpenLayers.Strategy.Save();
+    saveStrategy = new OpenLayers.Strategy.Save();
 
-    var wfs_layer = new OpenLayers.Layer.Vector("USA States", {
-        strategies: [new OpenLayers.Strategy.BBOX(), saveStrategy],
-        protocol: new OpenLayers.Protocol.WFS({
-            version: "1.1.0",
-            url: "http://localhost:9991/geoserver/wfs",
-            featurePrefix: "topp",
-            featureType: "states",
-            featureNS: "http://www.openplans.org/topp",
-            geometryName: "the_geom",
-            srsName: "EPSG:4326"
-        })
-    });
+    map.addLayers([openstreetmap, google_maps, google_satellite]);
 
-    wfs_layer.setMap(map);
-    map.addLayers([openstreetmap, google_maps, google_satellite, wfs_layer]);
+    updateLayer(true);
 
-    var select = new OpenLayers.Control.SelectFeature([wfs_layer]);
-    map.addControl(select);
-    select.activate();
+    map.addControl(panel);
+    map.zoomToExtent(mapextent, true);
+};
 
-    wfs_layer.events.on({
-        featureselected: function (event) {
-            var size = 0;
-            var property;
+function populateProperties(counter, feat, hasValue) {
+    var size = counter;
+    var property;
 
-            $('#layer_info_left').empty();
-            $('#layer_info_right').empty();
+    $('#layer_info_left').append("<div class='edit_layer_info'>" + "FEATURE_ID" + "<br>" +
+            "<input type='text' id='FEATURE_ID' class='edit_layer_info_textbox' value='" + feat.fid +
+            "' disabled />" + "</div>");
 
-            $('#layer_info_left').append("<p>" + "FEATURE_ID" + ": " + event.feature.fid + "</p>");
-            for (property in event.feature.attributes) {
-                if(size < 13) {
-                    $('#layer_info_left').append("<p>" + property + ": " + event.feature.attributes[property] + "</p>");
-                }
-                else {
-                    $('#layer_info_right').append("<p>" + property + ": " + event.feature.attributes[property] + "</p>");
-                }
-                size++;
-            }
-        },
-        featureunselected: function (event) {
-            $('#layer_info_left').empty();
-            $('#layer_info_right').empty();
+    console.log(featureProps);
+    for (var i = 1; i < featureProps.length; i++) {
+        property = featureProps[i];
 
-            $('#layer_info_left').append("<p>" + "Nenhuma layer seleccionada. Carregue numa para mostrar informação" + "</p>");
-        }
-    });
+        if ((i % 3) == 0)
+            $('#layer_info_left').append("<div class='edit_layer_info'>" + property + "<br>" +
+                    "<input type='text' id='" + property + "' class='edit_layer_info_textbox' /></div>");
 
-    //**********************************CONTROLO******************************************
+        else if ((i % 3) == 1)
+            $('#layer_info_center').append("<div class='edit_layer_info'>" + property + "<br>" +
+                    "<input type='text' id='" + property + "' class='edit_layer_info_textbox' /></div>");
 
+        else
+            $('#layer_info_right').append("<div class='edit_layer_info'>" + property + "<br>" +
+                    "<input type='text' id='" + property + "' class='edit_layer_info_textbox' /></div>");
 
-    var panel = new OpenLayers.Control.Panel({
+        if(hasValue)
+            $('#' + property).val(feat.attributes[property]);
+    }
+}
+
+function createControls() {
+
+    panel = new OpenLayers.Control.Panel({
         displayClass: 'customEditingToolbar',
         allowDepress: true
     });
 
-    var drawPoly = new OpenLayers.Control.DrawFeature(
+    drawPoly = new OpenLayers.Control.DrawFeature(
             wfs_layer, OpenLayers.Handler.Polygon,
             {
                 title: "Draw Polygon",
@@ -282,7 +301,7 @@ function init() {
             }
     );
 
-    var drawPoint = new OpenLayers.Control.DrawFeature(
+    drawPoint = new OpenLayers.Control.DrawFeature(
             wfs_layer, OpenLayers.Handler.Point,
             {
                 title: "Draw Point",
@@ -290,14 +309,14 @@ function init() {
             }
     );
 
-    var edit = new OpenLayers.Control.ModifyFeature(wfs_layer, {
+    edit = new OpenLayers.Control.ModifyFeature(wfs_layer, {
         title: "Edit Feature",
         displayClass: "olControlModifyFeature"
     });
 
-    var del = new DeleteFeature(wfs_layer, {title: "Delete Feature"});
+    del = new DeleteFeature(wfs_layer, {title: "Delete Feature"});
 
-    var save = new OpenLayers.Control.Button({
+    save = new OpenLayers.Control.Button({
         title: "Save Changes",
         trigger: function () {
             if (edit.feature) {
@@ -309,112 +328,96 @@ function init() {
     });
 
     panel.addControls([save, del, edit, drawPoint, drawPoly]);
-    map.addControl(panel);
-    map.zoomToExtent(mapextent, true);
 }
-;
 
+function updateLayer(firstTime) {
 
-//*****************************TESTES********************************************
+    if (firstTime) {
+        wfs_layer = new OpenLayers.Layer.Vector("USA States", {
+            strategies: [new OpenLayers.Strategy.BBOX(), saveStrategy],
+            protocol: new OpenLayers.Protocol.WFS({
+                version: "1.1.0",
+                url: "http://localhost:9991/geoserver/wfs",
+                featurePrefix: "topp",
+                featureType: "states",
+                featureNS: "http://www.openplans.org/topp",
+                geometryName: "the_geom",
+                srsName: "EPSG:4326"
+            })
+        });
+        createControls();
+    }
+    else {
+//        map.removeLayer(wfs_layer);
+        wfs_layer.removeAllFeatures();
+        clearProperties();
+        $('#layer_info > p').append("Nenhuma layer seleccionada. Carregue numa para mostrar informação");
 
+        var workspace = $('#workspace').val();
+        var layerName = $('#layerName').val();
+        var workspaceURI = $('#workspaceURI').val();
+        var geometry = $('#geometry').val();
+        var epsgCode = $('#epsgCode').val();
 
-//***********************UNITED STATES*****************************
+        wfs_layer = new OpenLayers.Layer.Vector("NewLayer", {
+            strategies: [new OpenLayers.Strategy.BBOX(), saveStrategy],
+            protocol: new OpenLayers.Protocol.WFS({
+                version: "1.1.0",
+                url: "http://localhost:9991/geoserver/wfs",
+                featurePrefix: workspace,
+                featureType: layerName,
+                featureNS: workspaceURI,
+                geometryName: geometry,
+                srsName: epsgCode
+            })
+        });
+    }
 
-//            var wms = new OpenLayers.Layer.WMS('USA States',
-//                    'http://localhost:9991/geoserver/topp/wms',
-//                    {'layers': 'topp:states',
-//                        isBaseLayer: false, 'transparent': true} //This part was required!
-//            );
+    //TODO: tratar casos em que o pedido não contém informação para um layer existentes, p.e. um erro de digitação do utilizador
 
-//            var wfs_layer = new OpenLayers.Layer.Vector("New York Roads", {
-//                strategies: [new OpenLayers.Strategy.Fixed()],
-//                protocol: new OpenLayers.Protocol.WFS({
-//                    version: "1.1.0",
-//                    url: "http://localhost:9991/geoserver/wfs",
-//                    featurePrefix: "myc_roads",
-//                    featureType: "nyc_roads",
-//                    featureNS: "http://opengeo.org/nyc_roads",
-//                    geometryName: "the_geom",
-//                    srsName: "EPSG:4326"
-//                })
-//                //renderers : renderer
-//            });
+    map.addLayers([wfs_layer]);
+    wfs_layer.setMap(map);
 
-//display layer using WMS
-//            var wms = new OpenLayers.Layer.WMS('New York Roads',
-//                    'http://localhost:9991/geoserver/nyc_roads/wms',
-//                    {'layers': 'nyc_roads:nyc_roads',
-//                        isBaseLayer: false, 'transparent': true} //This part was required!
-//            );
+    select = new OpenLayers.Control.SelectFeature([wfs_layer]);
+    map.addControl(select);
+    select.activate();
 
+    wfs_layer.events.on({
+        featuresadded: function (params) {
+            if(counter == 0) {
+                featureProps = [];
+                var feat = params.features[0];
+                var prop;
 
-//***********************TASMANIA*****************************
-//WMS funciona, WFS também
-//Caso queira mostrar WMS, alterar definições na inicialização do MAPA!!
+                for (prop in feat.attributes) {
+                    featureProps.push(prop);
+                }
+            }
+            counter++;
+        },
+        featureselected: function (params) {
+            var size = 1;
 
-//            var wms1 = new OpenLayers.Layer.WMS('Tasmania - Water',
-//                    'http://localhost:9991/geoserver/topp/wms',
-//                    {'layers': 'topp:tasmania_water_bodies',
-//                        isBaseLayer: false, 'transparent': true} //This part was required!
-//            );
-//
-//            var wms2 = new OpenLayers.Layer.WMS('Tasmania - Roads',
-//                    'http://localhost:9991/geoserver/topp/wms',
-//                    {'layers': 'topp:tasmania_roads',
-//                        isBaseLayer: false, 'transparent': true} //This part was required!
-//            );
+            //TODO passar o clearProperties para o listener featureUnselected
+            clearProperties();
+            populateProperties(size, params.feature, true);
+        },
+        beforefeaturemodified: function (params) {
+            var size = 1;
+            clearProperties();
 
-//            var renderer = OpenLayers.Util.getParameters(window.location.href).renderer;
-//            renderer = (renderer) ? [renderer] : OpenLayers.Layer.Vector.prototype.renderers;
+            if(params.feature.attributes.length == 1)
+                populateProperties(size, featureProps, false);
+            else
+                populateProperties(size, params.feature, true)
+        },
+        featureunselected: function (params) {
+            clearProperties();
 
-//Obter a layer usando um pedido GET - não usar, pois não permite guardar alteraçoes
-//            var wfs_options = {
-//                url: "http://localhost:9991/geoserver/topp/ows",
-//                params: {
-//                    service: "WFS",
-//                    version: "1.0.0",
-//                    request: "GetFeature",
-//                    typeName: "topp:tasmania_roads"
-//                },
-//                format: new OpenLayers.Format.GML({
-//                    featureNS: "http://www.openplans.org/topp",
-//                    geometryName: "the_geom",
-//                    isBaseLayer: false,
-//                    transparent: true,
-//                    srsName: "EPSG:4326"
-//                })
-//            };
-//
-//            var wfs_layer = new OpenLayers.Layer.Vector('WFS', {
-//                strategies: [new OpenLayers.Strategy.Fixed()],
-//                visibility: true,
-//                protocol: new OpenLayers.Protocol.HTTP(wfs_options)
-//            });
-
-//Obter layer usando um pedido POST
-//            var wfs_layer = new OpenLayers.Layer.Vector("WFS Tasmania Water", {
-//                strategies: [new OpenLayers.Strategy.Fixed()],
-//                protocol: new OpenLayers.Protocol.WFS({
-//                    version: "1.1.0",
-//                    url: "http://localhost:9991/geoserver/wfs",
-//                    featurePrefix: "topp",
-//                    featureType: "tasmania_water_bodies",
-//                    featureNS: "http://www.openplans.org/topp",
-//                    geometryName: "the_geom",
-//                    srsName: "EPSG:4326",
-//                    visibility: true
-//                })
-//                //renderers : renderer
-//            });
-//            wfs_layer.setMap(map);
-
-
-//    wms1.setMap(map);
-//    wms2.setMap(map);
-//    map.addLayers([openstreetmap, google_maps, google_satellite, wfs_layer, wms1, wms2]);
-//    map.addLayers([openstreetmap, google_maps, google_satellite, wms]);
-//    map.zoomToExtent(mapextent);
-
+            $('#layer_info > p').append("Nenhuma layer seleccionada. Carregue numa para mostrar informação");
+        }
+    });
+}
 
 </script>
 
@@ -423,22 +426,50 @@ function init() {
 <h2>Manipulação interactiva de layers usando como repositório o Geoserver</h2>
 
 <div id="main">
-    <div id="map"></div>
+    <div id="map-content">
+        <div id="map"></div>
+        <p><i> Trabalho realizado por Rafael Bizarra 41895 MIEI</i></p>
+    </div>
     <div id="info">
-        <h3>Coordenadas do rato:</h3>
-        <div id="coordinates"></div><br>
+        <h3>Escolher layer</h3>
+
+        <div id="layer_chooser">
+            <p>Neste <a href="../www/serjtankian_avatar.jpg" target="_blank">link</a> encontra informação sobre como
+                preencher correctamente estes campos.<br>Nota: Por omissão, a layer mostrada é <i>topp:states</i> (a
+                mesma usada no exemplo).</p>
+
+            <div id="layer_chooser_left">
+                <input type="text" class="input-text" id="layerName" placeholder="Layer Name"/><br>
+                <input type="text" class="input-text" id="geometry"
+                       placeholder="Layer Geometry (default: the_geom)"/><br>
+                <input type="text" class="input-text" id="epsgCode" placeholder="EPSG Code"/><br>
+                <input type="button" id="send-request" value="Submit" onclick="updateLayer(false)"/>
+                <input type="button" id="reset-layer" value="Reset to default"
+                       onclick="alert('repor a layer por omissao. na função updateLayer, em vez de booleanos usar inteiros: 0 para 1ª vez, 1 para botão submit e 2 para botão reset')"/>
+            </div>
+            <div id="layer_chooser_right">
+                <input type="text" class="input-text" id="workspace" placeholder="Workspace Name"/><br>
+                <input type="text" class="input-text" id="workspaceURI" placeholder="Workspace URI"/>
+            </div>
+        </div>
+        <h3>Coordenadas do rato</h3>
+
+        <b>
+            <div id="coordinates"></div>
+        </b>
+        <br>
+
         <h3>Informação da layer</h3>
+
         <div id="layer_info">
-            <div id="layer_info_left">Nenhuma layer seleccionada. Carregue numa para mostrar informação</div>
+            <p>Nenhuma layer seleccionada. Carregue numa para mostrar informação</p>
+
+            <div id="layer_info_left"></div>
+            <div id="layer_info_center"></div>
             <div id="layer_info_right"></div>
         </div>
     </div>
-    <div id="layer_chooser">
-        <h3>Escolher layer</h3>
-    </div>
+
 </div>
-
-
-<!--<div id="nodelist"></div>-->
 </body>
 </html>
