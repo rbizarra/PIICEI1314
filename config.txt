@@ -1,0 +1,7 @@
+WFS_Protocol_Version: 1.1.0
+GeoserverURL: http://localhost:9991/geoserver/wfs
+Layer_name: states
+Workspace: topp
+Workspace_URI: http://www.openplans.org/topp
+Geometry: the_geom
+EPSG_Code(apenas_o_numero): 4236

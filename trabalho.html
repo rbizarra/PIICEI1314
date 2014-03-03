@@ -26,52 +26,52 @@
     }
 
     .olControlDrawFeaturePolygonItemInactive {
-        background-image: url("OpenLayers/theme/default/img/draw_polygon_off.png");
+        background-image: url("assets/draw_polygon_off.png");
         background-repeat: no-repeat;
     }
 
     .olControlDrawFeaturePolygonItemActive {
-        background-image: url("OpenLayers/theme/default/img/draw_polygon_on.png");
+        background-image: url("assets/draw_polygon_on.png");
         background-repeat: no-repeat;
     }
 
     .olControlDrawFeaturePointItemInactive {
-        background-image: url("OpenLayers/theme/default/img/add_point_off.png");
+        background-image: url("assets/add_point_off.png");
         background-repeat: no-repeat;
     }
 
     .olControlDrawFeaturePointItemActive {
-        background-image: url("OpenLayers/theme/default/img/add_point_on.png");
+        background-image: url("assets/add_point_on.png");
         background-repeat: no-repeat;
     }
 
     .olControlModifyFeatureItemActive {
-        background-image: url(OpenLayers/theme/default/img/move_feature_on.png);
+        background-image: url("assets/move_feature_on.png");
         background-repeat: no-repeat;
     }
 
     .olControlModifyFeatureItemInactive {
-        background-image: url(OpenLayers/theme/default/img/move_feature_off.png);
+        background-image: url("assets/move_feature_off.png");
         background-repeat: no-repeat;
     }
 
     .olControlDeleteFeatureItemActive {
-        background-image: url(OpenLayers/theme/default/img/remove_point_on.png);
+        background-image: url(assets/remove_point_on.png);
         background-repeat: no-repeat;
     }
 
     .olControlDeleteFeatureItemInactive {
-        background-image: url(OpenLayers/theme/default/img/remove_point_off.png);
+        background-image: url("assets/remove_point_off.png");
         background-repeat: no-repeat;
     }
 
     .olControlSaveFeatureItemActive {
-        background-image: url(OpenLayers/theme/default/img/save_features_on.png);
+        background-image: url("assets/save_features_on.png");
         background-repeat: no-repeat;
     }
 
     .olControlSaveFeatureItemInactive {
-        background-image: url(OpenLayers/theme/default/img/save_features_off.png);
+        background-image: url("assets/save_features_off.png");
         background-repeat: no-repeat;
     }
 
@@ -155,12 +155,24 @@
     }
 
     .edit_layer_info_textbox {
-
+        margin-top: 3px;
     }
 
 </style>
 
 <script type="text/javascript">
+
+var selectedFeature, map, wfs_layer, saveStrategy, select;
+var save, del, edit, drawPoint, drawPoly, panel;
+var featureProps;
+var message;
+var counter = 0;
+var idSeed = 0;
+var intervalID;
+
+//como preencher: WFS_protocol_version; GeoserverURL;
+var info = []//["1.1.0", "http://localhost:9991/geoserver/wfs", "states", "topp",
+//    "http://www.openplans.org/topp", "the_geom", "4236"];
 
 var DeleteFeature = OpenLayers.Class(OpenLayers.Control, {
     initialize: function (layer, options) {
@@ -189,20 +201,33 @@ var DeleteFeature = OpenLayers.Class(OpenLayers.Control, {
     CLASS_NAME: "OpenLayers.Control.DeleteFeature"
 });
 
-function clearProperties() {
-    $('#layer_info > p').empty();
-    $('#layer_info_left').empty();
-    $('#layer_info_center').empty();
-    $('#layer_info_right').empty();
+function init() {
+    var file = 'http://localhost:9991/geoserver/www/config.txt';
+    var count = 0;
+
+    //carregar os argumentos do ficheiro de texto
+    //o segundo parametro do pedido GET server para se ignorar a cache. caso contrario, caso se alterasse o ficheiro
+    //de configuração, as alterações não eram visiveis, pois o pedido nao era feito e os dados eram lidos da cache
+    intervalID = setInterval(function () {
+        $.get(file, { "_": $.now() }, function (data) {
+            var lines = data.split("\r\n");
+//            console.log(lines.length);
+
+            $.each(lines, function (n, elem) {
+                var cont = elem.split(" ");
+                info[n] = cont[1];
+            });
+            if (count == 0)
+                createMap();
+            count++;
+        }, 'text');
+    }, 250);
 }
 
-var selectedFeature, selectControl, map, wfs_layer, saveStrategy, select;
-var save, del, edit, drawPoint, drawPoly, panel;
-var featureProps;
-var counter = 0;
-var countAux = 0;
+function createMap() {
 
-function init() {
+    //impede o envio de novos pedidos para a leitura do ficheiro
+    clearInterval(intervalID);
 
     // World Geodetic System 1984 projection
     var WGS84 = new OpenLayers.Projection("EPSG:4326");
@@ -243,8 +268,8 @@ function init() {
             }
     );
 
-    var aliasproj = new OpenLayers.Projection("EPSG:3857");
-    openstreetmap.projection = google_maps.projection = google_satellite.projection = aliasproj;
+//    var aliasproj = new OpenLayers.Projection("EPSG:3857");
+//    openstreetmap.projection = google_maps.projection = google_satellite.projection = aliasproj;
 
     saveStrategy = new OpenLayers.Strategy.Save();
 
@@ -254,34 +279,241 @@ function init() {
 
     map.addControl(panel);
     map.zoomToExtent(mapextent, true);
-};
+}
+;
 
-function populateProperties(counter, feat, hasValue) {
-    var size = counter;
+function updateLayer(firstTime) {
+
+//    if (firstTime) {
+    wfs_layer = new OpenLayers.Layer.Vector("USA States", {
+        strategies: [new OpenLayers.Strategy.BBOX(), saveStrategy],
+        protocol: new OpenLayers.Protocol.WFS({
+            version: info[0],
+            url: info[1],
+            featureType: info[2],
+            featurePrefix: info[3],
+            featureNS: info[4],
+            geometryName: info[5],
+            srsName: "EPSG:" + info[6]
+        })
+    });
+//    }
+
+//    TODO: funcionalidade removida, havia problemas a carregar a layer pela segunda vez
+//    else {
+////        map.removeLayer(wfs_layer);
+//        wfs_layer.removeAllFeatures();
+//        clearProperties();
+//        $('#layer_info > p').append("Nenhuma layer seleccionada. Carregue numa para mostrar informação");
+//
+//        var workspace = $('#workspace').val();
+//        var layerName = $('#layerName').val();
+//        var workspaceURI = $('#workspaceURI').val();
+//        var geometry = $('#geometry').val();
+//        var epsgCode = $('#epsgCode').val();
+//
+//        wfs_layer = new OpenLayers.Layer.Vector("NewLayer", {
+//            strategies: [new OpenLayers.Strategy.BBOX(), saveStrategy],
+//            protocol: new OpenLayers.Protocol.WFS({
+//                version: "1.1.0",
+//                url: "http://localhost:9991/geoserver/wfs",
+//                featurePrefix: workspace,
+//                featureType: layerName,
+//                featureNS: workspaceURI,
+//                geometryName: geometry,
+//                srsName: epsgCode
+//            })
+//        });
+//    }
+
+    map.addLayers([wfs_layer]);
+    wfs_layer.setMap(map);
+
+    select = new OpenLayers.Control.SelectFeature([wfs_layer]);
+    map.addControl(select);
+    select.activate();
+
+//    if (firstTime)
+    createControls();
+
+    wfs_layer.events.on({
+        featuresadded: function (params) {
+            if (counter == 0) {
+                featureProps = [];
+                var feat = params.features[0];
+                var prop;
+
+                for (prop in feat.attributes) {
+                    featureProps.push(prop);
+                }
+            }
+            counter++;
+        },
+        featureadded: function (param) {
+            if (counter > 0 && param.feature.fid == null) {
+                param.feature.fid = "id" + idSeed++;
+                clearProperties();
+                populateProperties(param.feature, false, true);
+                selectedFeature = param.feature;
+
+                $('#layer_info_left').append('<input type="button" id="apply_changes" ' +
+                        'value="Apply Changes" onclick="applyChanges(' + true + ')"/>');
+            }
+        },
+        featureselected: function (params) {
+            clearProperties();
+            selectedFeature = params.feature;
+            populateProperties(params.feature, true, false);
+            console.log(params.feature);
+        },
+        beforefeaturemodified: function (params) {
+            var size = 0;
+            size = countAttributes(params.feature);
+            console.log("beforefeaturemodified " + size);
+
+            clearProperties();
+            selectedFeature = params.feature;
+            populateProperties(params.feature, true, true);
+//            params.feature.state = OpenLayers.State.UPDATE;
+
+            $('#layer_info_left').append('<input type="button" id="apply_changes" ' +
+                    'value="Apply Changes" onclick="applyChanges(' + false + ')"/>');
+
+            console.log("FEATURE_ID (before mod): " + params.feature.fid);
+        },
+        featuremodified: function (params) {
+//            var unsavedChanges = checkUnsavedChanges();
+
+//            if (unsavedChanges)
+//                confirmChanges(params.feature, false);
+
+            var area = params.feature.geometry.getArea();
+            var radius = 0.565352 * Math.sqrt(area);
+            console.log(radius);
+
+            console.log("FEATURE_ID (after mod): " + params.feature.fid);
+
+            clearProperties();
+            if (edit.feature) {
+                edit.unselectFeature();
+            }
+//            saveStrategy.save(selectedFeature);
+
+            selectedFeature = null;
+//            params.feature.state = null;
+
+            $('#layer_info > p').append("Nenhuma layer seleccionada. Carregue numa para mostrar informação");
+        },
+        featureunselected: function (params) {
+            clearProperties();
+            selectedFeature = null;
+
+            $('#layer_info > p').append("Nenhuma layer seleccionada. Carregue numa para mostrar informação");
+        }
+    });
+}
+
+function clearProperties() {
+    $('#layer_info > p').empty();
+    $('#layer_info_left').empty();
+    $('#layer_info_center').empty();
+    $('#layer_info_right').empty();
+}
+
+function showMessage(success) {
+    if (success)
+        alert("alteraçoes guardadas");
+    else
+        alert("erro a gravar");
+}
+
+function countAttributes(feature) {
+    var size = 0;
+    var temp;
+
+    for (temp in feature.attributes)
+        size++;
+
+    return size;
+}
+
+function checkUnsavedChanges() {
+    var prop;
+
+    for (prop in selectedFeature.attributes) {
+        //o valor da textbox da respectiva propriedade
+        var value = $('#' + prop).val();
+        if (value != selectedFeature.attributes[prop])
+            return true;
+    }
+    return false;
+}
+
+function confirmChanges(feature, newFeature) {
+    var window = confirm("Efectuou alterações que não foram guardadas" + '\n' + "Deseja guardar?");
+    if (window == true && feature != undefined) {
+        applyChanges(newFeature);
+        message = "Alterações guardadas";
+    }
+    else
+        message = "Alterações descartadas";
+}
+
+function applyChanges(newFeature) {
+    var size;
+    for (var i = 0; i < featureProps.length; i++) {
+        var key = featureProps[i];
+        var value = $('#' + key).val();
+
+        selectedFeature.attributes[key] = value;
+        size = countAttributes(selectedFeature);
+        console.log("featureadded_CRL" + i + " " + size);
+    }
+    selectedFeature.data = selectedFeature.attributes;
+//    if (!newFeature) {
+//        var temp = wfs_layer.getFeatureByFid(selectedFeature.fid);
+//        wfs_layer.eraseFeatures(temp);
+//        wfs_layer.addFeatures(selectedFeature);
+////        saveStrategy.save(selectedFeature);
+//    }
+
+    console.log(selectedFeature);
+}
+
+function populateProperties(feature, hasValue, isEditing) {
+    $('#layer_info_left').append("<div class='edit_layer_info'><b>" + "FEATURE_ID" + "</b><br>" +
+            "<p class='edit_layer_info_textbox'>" + feature.fid + "</p></div>");
+
     var property;
+    for (var i = 1; i < featureProps.length + 1; i++) {
+        property = featureProps[i - 1];
 
-    $('#layer_info_left').append("<div class='edit_layer_info'>" + "FEATURE_ID" + "<br>" +
-            "<input type='text' id='FEATURE_ID' class='edit_layer_info_textbox' value='" + feat.fid +
-            "' disabled />" + "</div>");
-
-    console.log(featureProps);
-    for (var i = 1; i < featureProps.length; i++) {
-        property = featureProps[i];
-
-        if ((i % 3) == 0)
-            $('#layer_info_left').append("<div class='edit_layer_info'>" + property + "<br>" +
-                    "<input type='text' id='" + property + "' class='edit_layer_info_textbox' /></div>");
-
-        else if ((i % 3) == 1)
-            $('#layer_info_center').append("<div class='edit_layer_info'>" + property + "<br>" +
-                    "<input type='text' id='" + property + "' class='edit_layer_info_textbox' /></div>");
-
-        else
-            $('#layer_info_right').append("<div class='edit_layer_info'>" + property + "<br>" +
-                    "<input type='text' id='" + property + "' class='edit_layer_info_textbox' /></div>");
-
-        if(hasValue)
-            $('#' + property).val(feat.attributes[property]);
+        if ((i % 3) == 0) {
+            if (isEditing)
+                $('#layer_info_left').append("<div class='edit_layer_info'><b>" + property + "</b><br>" +
+                        "<input type='text' id='" + property + "' class='edit_layer_info_textbox' /></div>");
+            else
+                $('#layer_info_left').append("<div class='edit_layer_info'><b>" + property + "</b><br>" +
+                        "<p class='edit_layer_info_textbox'>" + feature.attributes[property] + "</p></div>");
+        }
+        else if ((i % 3) == 1) {
+            if (isEditing)
+                $('#layer_info_center').append("<div class='edit_layer_info'><b>" + property + "</b><br>" +
+                        "<input type='text' id='" + property + "' class='edit_layer_info_textbox' /></div>");
+            else
+                $('#layer_info_center').append("<div class='edit_layer_info'><b>" + property + "</b><br>" +
+                        "<p class='edit_layer_info_textbox'>" + feature.attributes[property] + "</p></div>");
+        }
+        else {
+            if (isEditing)
+                $('#layer_info_right').append("<div class='edit_layer_info'><b>" + property + "</b><br>" +
+                        "<input type='text' id='" + property + "' class='edit_layer_info_textbox' /></div>");
+            else
+                $('#layer_info_right').append("<div class='edit_layer_info'><b>" + property + "</b><br>" +
+                        "<p class='edit_layer_info_textbox'>" + feature.attributes[property] + "</p></div>");
+        }
+        if (hasValue && isEditing)
+            $('#' + property).val(feature.attributes[property]);
     }
 }
 
@@ -330,95 +562,6 @@ function createControls() {
     panel.addControls([save, del, edit, drawPoint, drawPoly]);
 }
 
-function updateLayer(firstTime) {
-
-    if (firstTime) {
-        wfs_layer = new OpenLayers.Layer.Vector("USA States", {
-            strategies: [new OpenLayers.Strategy.BBOX(), saveStrategy],
-            protocol: new OpenLayers.Protocol.WFS({
-                version: "1.1.0",
-                url: "http://localhost:9991/geoserver/wfs",
-                featurePrefix: "topp",
-                featureType: "states",
-                featureNS: "http://www.openplans.org/topp",
-                geometryName: "the_geom",
-                srsName: "EPSG:4326"
-            })
-        });
-        createControls();
-    }
-    else {
-//        map.removeLayer(wfs_layer);
-        wfs_layer.removeAllFeatures();
-        clearProperties();
-        $('#layer_info > p').append("Nenhuma layer seleccionada. Carregue numa para mostrar informação");
-
-        var workspace = $('#workspace').val();
-        var layerName = $('#layerName').val();
-        var workspaceURI = $('#workspaceURI').val();
-        var geometry = $('#geometry').val();
-        var epsgCode = $('#epsgCode').val();
-
-        wfs_layer = new OpenLayers.Layer.Vector("NewLayer", {
-            strategies: [new OpenLayers.Strategy.BBOX(), saveStrategy],
-            protocol: new OpenLayers.Protocol.WFS({
-                version: "1.1.0",
-                url: "http://localhost:9991/geoserver/wfs",
-                featurePrefix: workspace,
-                featureType: layerName,
-                featureNS: workspaceURI,
-                geometryName: geometry,
-                srsName: epsgCode
-            })
-        });
-    }
-
-    //TODO: tratar casos em que o pedido não contém informação para um layer existentes, p.e. um erro de digitação do utilizador
-
-    map.addLayers([wfs_layer]);
-    wfs_layer.setMap(map);
-
-    select = new OpenLayers.Control.SelectFeature([wfs_layer]);
-    map.addControl(select);
-    select.activate();
-
-    wfs_layer.events.on({
-        featuresadded: function (params) {
-            if(counter == 0) {
-                featureProps = [];
-                var feat = params.features[0];
-                var prop;
-
-                for (prop in feat.attributes) {
-                    featureProps.push(prop);
-                }
-            }
-            counter++;
-        },
-        featureselected: function (params) {
-            var size = 1;
-
-            //TODO passar o clearProperties para o listener featureUnselected
-            clearProperties();
-            populateProperties(size, params.feature, true);
-        },
-        beforefeaturemodified: function (params) {
-            var size = 1;
-            clearProperties();
-
-            if(params.feature.attributes.length == 1)
-                populateProperties(size, featureProps, false);
-            else
-                populateProperties(size, params.feature, true)
-        },
-        featureunselected: function (params) {
-            clearProperties();
-
-            $('#layer_info > p').append("Nenhuma layer seleccionada. Carregue numa para mostrar informação");
-        }
-    });
-}
-
 </script>
 
 </head>
@@ -439,21 +582,21 @@ function updateLayer(firstTime) {
                 mesma usada no exemplo).</p>
 
             <div id="layer_chooser_left">
-                <input type="text" class="input-text" id="layerName" placeholder="Layer Name"/><br>
-                <input type="text" class="input-text" id="geometry"
-                       placeholder="Layer Geometry (default: the_geom)"/><br>
-                <input type="text" class="input-text" id="epsgCode" placeholder="EPSG Code"/><br>
-                <input type="button" id="send-request" value="Submit" onclick="updateLayer(false)"/>
+                <input type="text" class="input-text" disabled id="layerName" placeholder="Layer Name"/><br>
+                <input type="text" class="input-text" disabled id="workspace" placeholder="Workspace Name"/><br>
+                <input type="text" class="input-text" disabled id="workspaceURI" placeholder="Workspace URI"/><br>
+                <input type="button" id="send-request" value="Submit"
+                       onclick="alert('funcionalidade desactivada. ler ficheiro README')"/>
                 <input type="button" id="reset-layer" value="Reset to default"
                        onclick="alert('repor a layer por omissao. na função updateLayer, em vez de booleanos usar inteiros: 0 para 1ª vez, 1 para botão submit e 2 para botão reset')"/>
             </div>
             <div id="layer_chooser_right">
-                <input type="text" class="input-text" id="workspace" placeholder="Workspace Name"/><br>
-                <input type="text" class="input-text" id="workspaceURI" placeholder="Workspace URI"/>
+                <input type="text" class="input-text" id="geometry" disabled
+                       placeholder="Layer Geometry (default: the_geom)"/><br>
+                <input type="text" class="input-text" id="epsgCode" disabled placeholder="EPSG Code"/>
             </div>
         </div>
         <h3>Coordenadas do rato</h3>
-
         <b>
             <div id="coordinates"></div>
         </b>
