@@ -35,16 +35,6 @@
         background-repeat: no-repeat;
     }
 
-    .olControlDrawFeaturePointItemInactive {
-        background-image: url("assets/add_point_off.png");
-        background-repeat: no-repeat;
-    }
-
-    .olControlDrawFeaturePointItemActive {
-        background-image: url("assets/add_point_on.png");
-        background-repeat: no-repeat;
-    }
-
     .olControlModifyFeatureItemActive {
         background-image: url("assets/move_feature_on.png");
         background-repeat: no-repeat;
@@ -162,17 +152,17 @@
 
 <script type="text/javascript">
 
-var selectedFeature, map, wfs_layer, saveStrategy, select;
-var save, del, edit, drawPoint, drawPoly, panel;
+var currentFeature;
+var map, wfs_layer, saveStrategy, select;
+var save, del, edit, drawPoly, panel;
 var featureProps;
 var message;
 var counter = 0;
 var idSeed = 0;
 var intervalID;
-
-//como preencher: WFS_protocol_version; GeoserverURL;
-var info = []//["1.1.0", "http://localhost:9991/geoserver/wfs", "states", "topp",
-//    "http://www.openplans.org/topp", "the_geom", "4236"];
+var info = [];
+var cleaningCounter = 0;
+var readyToClear = false;
 
 var DeleteFeature = OpenLayers.Class(OpenLayers.Control, {
     initialize: function (layer, options) {
@@ -242,7 +232,8 @@ function createMap() {
             new OpenLayers.Control.MousePosition(
                     {div: document.getElementById("coordinates")})
         ],
-        displayProjection: WGS84
+        displayProjection: WGS84,
+        projection: WGS84_google_mercator
     });
 
     var mapextent =
@@ -253,27 +244,16 @@ function createMap() {
 //                new OpenLayers.Bounds(-144.75793, -9.37040, -57.04309, 61.39281).transform(WGS84, WGS84_google_mercator); //USA
 //                new OpenLayers.Bounds(-9.27273, 38.5882, -9.10141, 38.72121).transform(WGS84, WGS84_google_mercator); //margem sul
 
-    var openstreetmap = new OpenLayers.Layer.OSM();
-
     var google_maps = new OpenLayers.Layer.Google(
-            "Google Maps", {
-                numZoomLevels: 20
-            }
+            "Google Physical",
+            {type: google.maps.MapTypeId.PHYSICAL, sphericalMercator: true}
     );
 
-    var google_satellite = new OpenLayers.Layer.Google(
-            "Google Satellite", {
-                type: google.maps.MapTypeId.SATELLITE,
-                numZoomLevels: 20
-            }
-    );
-
-//    var aliasproj = new OpenLayers.Projection("EPSG:3857");
-//    openstreetmap.projection = google_maps.projection = google_satellite.projection = aliasproj;
+    var openstreetmap = new OpenLayers.Layer.OSM();
 
     saveStrategy = new OpenLayers.Strategy.Save();
 
-    map.addLayers([openstreetmap, google_maps, google_satellite]);
+    map.addLayers([google_maps, openstreetmap]);
 
     updateLayer(true);
 
@@ -287,6 +267,7 @@ function updateLayer(firstTime) {
 //    if (firstTime) {
     wfs_layer = new OpenLayers.Layer.Vector("USA States", {
         strategies: [new OpenLayers.Strategy.BBOX(), saveStrategy],
+        projection: new OpenLayers.Projection("EPSG:4326"),
         protocol: new OpenLayers.Protocol.WFS({
             version: info[0],
             url: info[1],
@@ -335,6 +316,7 @@ function updateLayer(firstTime) {
 
 //    if (firstTime)
     createControls();
+//    edit.clickout = false;
 
     wfs_layer.events.on({
         featuresadded: function (params) {
@@ -354,7 +336,7 @@ function updateLayer(firstTime) {
                 param.feature.fid = "id" + idSeed++;
                 clearProperties();
                 populateProperties(param.feature, false, true);
-                selectedFeature = param.feature;
+                currentFeature = param.feature;
 
                 $('#layer_info_left').append('<input type="button" id="apply_changes" ' +
                         'value="Apply Changes" onclick="applyChanges(' + true + ')"/>');
@@ -362,51 +344,81 @@ function updateLayer(firstTime) {
         },
         featureselected: function (params) {
             clearProperties();
-            selectedFeature = params.feature;
+            currentFeature = params.feature;
             populateProperties(params.feature, true, false);
             console.log(params.feature);
         },
         beforefeaturemodified: function (params) {
-            var size = 0;
-            size = countAttributes(params.feature);
-            console.log("beforefeaturemodified " + size);
 
+//            console.log("before");
             clearProperties();
-            selectedFeature = params.feature;
-            populateProperties(params.feature, true, true);
-//            params.feature.state = OpenLayers.State.UPDATE;
+
+            currentFeature = params.feature;
+
+            populateProperties(currentFeature, true, true);
+//            console.log(edit.feature);
+            readyToClear = false;
+
+            if(edit.feature)
+                cleaningCounter = 1;
 
             $('#layer_info_left').append('<input type="button" id="apply_changes" ' +
                     'value="Apply Changes" onclick="applyChanges(' + false + ')"/>');
 
-            console.log("FEATURE_ID (before mod): " + params.feature.fid);
+        },
+        afterfeaturemodified: function(params) {
+
+//            console.log("AFTER");
+
+            if(cleaningCounter == 0) {
+//                console.log("LIMPEZA");
+                clearProperties();
+                $('#layer_info > p').append("Nenhuma layer seleccionada. Carregue numa para mostrar informação");
+            }
+            else if(cleaningCounter == 1) {
+                if(readyToClear) {
+                    readyToClear = false;
+                    cleaningCounter = 0;
+                    clearProperties();
+                    $('#layer_info > p').append("Nenhuma layer seleccionada. Carregue numa para mostrar informação");
+//                    console.log("LIMPEZA");
+                }
+                else
+                    readyToClear = true;
+            }
         },
         featuremodified: function (params) {
-//            var unsavedChanges = checkUnsavedChanges();
 
-//            if (unsavedChanges)
-//                confirmChanges(params.feature, false);
 
-            var area = params.feature.geometry.getArea();
-            var radius = 0.565352 * Math.sqrt(area);
-            console.log(radius);
+            console.log("featuremodified");
+            console.log(params.feature);
+//            saveStrategy.save();
 
-            console.log("FEATURE_ID (after mod): " + params.feature.fid);
-
-            clearProperties();
-            if (edit.feature) {
-                edit.unselectFeature();
-            }
-//            saveStrategy.save(selectedFeature);
-
-            selectedFeature = null;
-//            params.feature.state = null;
-
-            $('#layer_info > p').append("Nenhuma layer seleccionada. Carregue numa para mostrar informação");
+////            var unsavedChanges = checkUnsavedChanges();
+//
+////            if (unsavedChanges)
+////                confirmChanges(params.feature, false);
+//
+//            var area = params.feature.geometry.getArea();
+//            var radius = 0.565352 * Math.sqrt(area);
+//            console.log(radius);
+//
+//            console.log("FEATURE_ID (after mod): " + params.feature.fid);
+//
+//            clearProperties();
+//            if (edit.feature) {
+//                edit.unselectFeature();
+//            }
+////            saveStrategy.save(currentFeature);
+//
+////            currentFeature = null;
+////            params.feature.state = null;
+//
+//            $('#layer_info > p').append("Nenhuma layer seleccionada. Carregue numa para mostrar informação");
         },
         featureunselected: function (params) {
             clearProperties();
-            selectedFeature = null;
+            currentFeature = null;
 
             $('#layer_info > p').append("Nenhuma layer seleccionada. Carregue numa para mostrar informação");
         }
@@ -440,10 +452,10 @@ function countAttributes(feature) {
 function checkUnsavedChanges() {
     var prop;
 
-    for (prop in selectedFeature.attributes) {
+    for (prop in currentFeature.attributes) {
         //o valor da textbox da respectiva propriedade
         var value = $('#' + prop).val();
-        if (value != selectedFeature.attributes[prop])
+        if (value != currentFeature.attributes[prop])
             return true;
     }
     return false;
@@ -465,19 +477,19 @@ function applyChanges(newFeature) {
         var key = featureProps[i];
         var value = $('#' + key).val();
 
-        selectedFeature.attributes[key] = value;
-        size = countAttributes(selectedFeature);
+        currentFeature.attributes[key] = value;
+        size = countAttributes(currentFeature);
         console.log("featureadded_CRL" + i + " " + size);
     }
-    selectedFeature.data = selectedFeature.attributes;
+    currentFeature.data = currentFeature.attributes;
 //    if (!newFeature) {
-//        var temp = wfs_layer.getFeatureByFid(selectedFeature.fid);
+//        var temp = wfs_layer.getFeatureByFid(currentFeature.fid);
 //        wfs_layer.eraseFeatures(temp);
-//        wfs_layer.addFeatures(selectedFeature);
-////        saveStrategy.save(selectedFeature);
+//        wfs_layer.addFeatures(currentFeature);
+////        saveStrategy.save(currentFeature);
 //    }
 
-    console.log(selectedFeature);
+    console.log(currentFeature);
 }
 
 function populateProperties(feature, hasValue, isEditing) {
@@ -533,14 +545,6 @@ function createControls() {
             }
     );
 
-    drawPoint = new OpenLayers.Control.DrawFeature(
-            wfs_layer, OpenLayers.Handler.Point,
-            {
-                title: "Draw Point",
-                displayClass: "olControlDrawFeaturePoint"
-            }
-    );
-
     edit = new OpenLayers.Control.ModifyFeature(wfs_layer, {
         title: "Edit Feature",
         displayClass: "olControlModifyFeature"
@@ -559,7 +563,7 @@ function createControls() {
         displayClass: "olControlSaveFeatures"
     });
 
-    panel.addControls([save, del, edit, drawPoint, drawPoly]);
+    panel.addControls([save, del, edit, drawPoly]);
 }
 
 </script>
@@ -577,17 +581,16 @@ function createControls() {
         <h3>Escolher layer</h3>
 
         <div id="layer_chooser">
-            <p>Neste <a href="../www/serjtankian_avatar.jpg" target="_blank">link</a> encontra informação sobre como
-                preencher correctamente estes campos.<br>Nota: Por omissão, a layer mostrada é <i>topp:states</i> (a
-                mesma usada no exemplo).</p>
+            <p><b>Funcionalidade desactivada.</b> No ficheiro README encontra mais informação sobre como carregar
+            uma nova layer. Por omissão, a layer mostrada é <i>topp:states.</i></p>
 
             <div id="layer_chooser_left">
                 <input type="text" class="input-text" disabled id="layerName" placeholder="Layer Name"/><br>
                 <input type="text" class="input-text" disabled id="workspace" placeholder="Workspace Name"/><br>
                 <input type="text" class="input-text" disabled id="workspaceURI" placeholder="Workspace URI"/><br>
-                <input type="button" id="send-request" value="Submit"
+                <input type="button" id="send-request" value="Submit" disabled
                        onclick="alert('funcionalidade desactivada. ler ficheiro README')"/>
-                <input type="button" id="reset-layer" value="Reset to default"
+                <input type="button" id="reset-layer" value="Reset to default" disabled
                        onclick="alert('repor a layer por omissao. na função updateLayer, em vez de booleanos usar inteiros: 0 para 1ª vez, 1 para botão submit e 2 para botão reset')"/>
             </div>
             <div id="layer_chooser_right">
